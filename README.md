@@ -27,7 +27,25 @@ La aplicación consume datos de la **WorldCupAPI** — una API ya desarrollada p
 
 ## Integrantes del grupo
 
-> Completar con los nombres reales y la funcionalidad asignada por sorteo interno.
+### Tech Lead
+
+Debido a la gran cantidad de alumnos y grupos del curso, la cátedra utilizará al Tech Lead como principal punto de contacto para realizar seguimientos y consultas sobre el estado del proyecto.
+
+Uno de los integrantes del equipo asumirá este rol y será responsable de coordinar técnicamente el trabajo del grupo, organizar las integraciones entre funcionalidades y facilitar la comunicación con la cátedra.
+
+Entre sus responsabilidades se incluyen:
+
+- Coordinar la división de tareas y el avance general del TP.
+- Supervisar la integración entre las distintas funcionalidades.
+- Validar que el proyecto pueda ejecutarse correctamente de punta a punta.
+- Centralizar consultas técnicas y comunicación con la cátedra.
+- Ayudar a destrabar problemas técnicos dentro del equipo.
+
+**Nombre del Tech Lead:**  [Completar con Nombre]
+
+### Integrantes por funcionalidad
+
+> Completar con los nombres reales y la funcionalidad que va a realizar cada integrante.
 
 | # | Integrante | Funcionalidad | Sección |
 |---|-----------|---------------|---------|

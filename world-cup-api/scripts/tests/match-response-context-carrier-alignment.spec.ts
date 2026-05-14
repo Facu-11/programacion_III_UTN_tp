@@ -132,8 +132,8 @@ async function run(): Promise<void> {
 
     assert.equal(
       context.actingPlayer.name,
-      'Ghost Carrier',
-      'When carrier is missing from roster, context must still preserve carrier identity.',
+      'Lautaro Martinez',
+      'When carrier is missing from roster, context must recover using an on-field player from carrier side.',
     );
   }
 
@@ -144,4 +144,3 @@ run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

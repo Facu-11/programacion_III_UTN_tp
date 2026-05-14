@@ -80,13 +80,11 @@ export class MatchTurnOrchestratorHelper extends AbstractMatchBasicHelper {
 
     const actingTeamId = match.teamId;
     const actingTeamName = match.teamName;
-    const actingPlayers = userPlayers.length ? userPlayers : baseUserPlayers;
+    const actingPlayers = userPlayers;
     const actingAction = selectedAction;
-    const actingPlayer = this.matchPlayerSelectionHelper.pickPlayerForAction(
-      actingPlayers,
-      actingAction,
-      zone,
-    );
+    const actingPlayer = actingPlayers.length
+      ? this.matchPlayerSelectionHelper.pickPlayerForAction(actingPlayers, actingAction, zone)
+      : this.fallbackPlayer({ name: match.ballCarrierName || 'Unknown Player' });
     const nextMinute = this.resolveNextMinute(match);
 
     return {

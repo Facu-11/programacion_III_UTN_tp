@@ -84,8 +84,8 @@ export class MatchTurnFlowHelper
       availableActions,
       actionsByEvent: this.actionsByEvent,
       tacticalSnapshot: params.tacticalSnapshot,
-      userPlayers: params.userPlayers.length ? params.userPlayers : params.baseUserPlayers,
-      opponentPlayers: params.opponentPlayers.length ? params.opponentPlayers : params.baseOpponentPlayers,
+      userPlayers: params.userPlayers,
+      opponentPlayers: params.opponentPlayers,
       isPendingSetPiece:
         this.isRegularPenaltyEvent(effectiveTurnInput.rawEventType) && !params.isExecutingRegularPenalty,
       lastAction: params.selectedAction,
@@ -276,9 +276,11 @@ export class MatchTurnFlowHelper
         return fallbackPlayers[0];
       }
 
-      // Keep context coherent: if carrier name is not found in roster, preserve
-      // carrier identity instead of swapping to another player from the same side.
-      return this.buildFallbackCarrierPlayer(match.ballCarrierName || 'Unknown Player');
+      // If carrier name is stale (e.g., injured/substituted-out), never preserve it.
+      // Always recover from currently available players on the possession side.
+      if (fallbackPlayers.length) {
+        return fallbackPlayers[0];
+      }
     }
 
     if (actingPlayers.length) {
@@ -291,7 +293,7 @@ export class MatchTurnFlowHelper
 
     return {
       playerId: 'fallback-player',
-      name: match.ballCarrierName || 'Unknown Player',
+      name: 'Unknown Player',
       position: 'MF',
       shirtNumber: 0,
       age: 27,
@@ -311,12 +313,10 @@ export class MatchTurnFlowHelper
     baseUserPlayers: TeamPlayer[];
     baseOpponentPlayers: TeamPlayer[];
   }): TeamPlayer {
-    const { match, turnContext, userPlayers, opponentPlayers, baseUserPlayers, baseOpponentPlayers } = params;
+    const { match, turnContext, userPlayers, opponentPlayers } = params;
     const normalizedCarrierName = this.normalizePlayerName(match.ballCarrierName);
-    const sourcePlayers =
-      turnContext.actingTeamId === match.teamId
-        ? (userPlayers.length ? userPlayers : baseUserPlayers)
-        : (opponentPlayers.length ? opponentPlayers : baseOpponentPlayers);
+    const onFieldSourcePlayers = turnContext.actingTeamId === match.teamId ? userPlayers : opponentPlayers;
+    const sourcePlayers = onFieldSourcePlayers;
 
     if (!normalizedCarrierName) {
       return turnContext.actingPlayer;
@@ -333,9 +333,15 @@ export class MatchTurnFlowHelper
         return carrier;
       }
 
-      if (this.onBallActions.has(turnContext.action)) {
-        return this.buildFallbackCarrierPlayer(match.ballCarrierName || turnContext.actingPlayer.name);
+      // Do not resurrect stale carrier names (injured/red-carded/substituted players).
+      // Fall back to a currently available player from the acting side.
+      if (sourcePlayers.length) {
+        return sourcePlayers[0];
       }
+    }
+
+    if (sourcePlayers.length) {
+      return sourcePlayers[0];
     }
 
     return turnContext.actingPlayer;

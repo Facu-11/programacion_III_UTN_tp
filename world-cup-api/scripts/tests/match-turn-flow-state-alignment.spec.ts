@@ -14,6 +14,19 @@ type EffectiveTurnInput = {
 
 function run(): void {
   const helper = Object.create(MatchTurnFlowHelper.prototype) as any;
+  helper['onBallActions'] = new Set<MatchAction>([
+    MatchAction.PASS,
+    MatchAction.LONG_PASS,
+    MatchAction.DRIBBLE,
+    MatchAction.ATTACK,
+    MatchAction.HOLD,
+    MatchAction.CROSS,
+    MatchAction.SHOOT,
+    MatchAction.LEFT,
+    MatchAction.RIGHT,
+    MatchAction.CENTER,
+    MatchAction.PICAR,
+  ]);
   helper['matchTurnInputHelper'] = {
     resolvePenaltyAwardedSide: (eventType: MatchEventType) =>
       eventType === MatchEventType.PENALTY_FOR_EVENT
@@ -169,6 +182,104 @@ function run(): void {
       resolved.name,
       'Edimilson Fernandes',
       'Acting player must stay coherent with possession side and never cross-pick rival roster by name.',
+    );
+  }
+
+  {
+    const resolveActingPlayerFromMatchState = helper['resolveActingPlayerFromMatchState'].bind(helper);
+    const resolved = resolveActingPlayerFromMatchState({
+      match: {
+        teamId: 'arg',
+        opponentId: 'bra',
+        ballCarrierTeamId: 'arg',
+        ballCarrierName: 'Lionel Messi',
+      },
+      possession: MatchPossession.USER,
+      userPlayers: [
+        {
+          playerId: 'u-2',
+          name: 'Paulo Dybala',
+          position: 'FW',
+          shirtNumber: 21,
+          age: 32,
+          skill: 87,
+          attack: 88,
+          defense: 42,
+          energy: 80,
+          isCaptain: false,
+        },
+      ],
+      opponentPlayers: [],
+    });
+
+    assert.equal(
+      resolved.name,
+      'Paulo Dybala',
+      'If persisted carrier is stale, context must recover with an on-field player from possession side.',
+    );
+  }
+
+  {
+    const resolveActionActor = helper['resolveActionActor'].bind(helper);
+    const resolved = resolveActionActor({
+      match: {
+        teamId: 'arg',
+        opponentId: 'bra',
+        ballCarrierTeamId: 'arg',
+        ballCarrierName: 'Lionel Messi',
+      },
+      turnContext: {
+        action: MatchAction.PASS,
+        actingTeamId: 'arg',
+        actingPlayer: {
+          playerId: 'u-10',
+          name: 'Enzo Fernandez',
+          position: 'MF',
+          shirtNumber: 8,
+          age: 25,
+          skill: 86,
+          attack: 84,
+          defense: 78,
+          energy: 81,
+          isCaptain: false,
+        },
+      },
+      userPlayers: [
+        {
+          playerId: 'u-10',
+          name: 'Enzo Fernandez',
+          position: 'MF',
+          shirtNumber: 8,
+          age: 25,
+          skill: 86,
+          attack: 84,
+          defense: 78,
+          energy: 81,
+          isCaptain: false,
+        },
+      ],
+      opponentPlayers: [],
+      baseUserPlayers: [
+        {
+          playerId: 'u-99',
+          name: 'Lionel Messi',
+          position: 'FW',
+          shirtNumber: 10,
+          age: 39,
+          skill: 95,
+          attack: 97,
+          defense: 40,
+          energy: 50,
+          isCaptain: true,
+        },
+      ],
+      baseOpponentPlayers: [],
+    });
+
+    assert.equal(
+      resolved.name,
+      'Enzo Fernandez',
+      'On-ball actions must never resurrect stale carrier name; actor must be selected from on-field players.',
     );
   }
 

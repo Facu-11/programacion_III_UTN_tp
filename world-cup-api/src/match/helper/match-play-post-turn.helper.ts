@@ -210,6 +210,12 @@ export class MatchPlayPostTurnHelper implements MatchPlayPostTurnHelperContract 
       match.matchId,
       match.opponentId,
     );
+    this.sanitizeCarrierAgainstOnField({
+      match,
+      actingPlayer,
+      userPlayers: refreshedUserPlayers,
+      opponentPlayers: refreshedOpponentPlayers,
+    });
 
     if (!shouldEnterHalfTime(match) && !match.isFinished) {
       const lateGameTacticalAdjustment = await maybeApplyOpponentTacticalAdjustment(match, {
@@ -433,5 +439,42 @@ export class MatchPlayPostTurnHelper implements MatchPlayPostTurnHelperContract 
       selectedAction,
       actionOutcome: null,
     };
+  }
+
+  private sanitizeCarrierAgainstOnField(params: {
+    match: MatchEntity;
+    actingPlayer: TeamPlayer;
+    userPlayers: TeamPlayer[];
+    opponentPlayers: TeamPlayer[];
+  }): void {
+    const { match, actingPlayer, userPlayers, opponentPlayers } = params;
+    const carrierPool =
+      match.ballCarrierTeamId === match.teamId
+        ? userPlayers
+        : match.ballCarrierTeamId === match.opponentId
+          ? opponentPlayers
+          : [];
+    if (!carrierPool.length) {
+      return;
+    }
+
+    const normalizedCarrierName = this.normalizePlayerName(match.ballCarrierName);
+    const currentCarrier = normalizedCarrierName
+      ? carrierPool.find((player) => this.normalizePlayerName(player.name) === normalizedCarrierName)
+      : null;
+    if (currentCarrier) {
+      return;
+    }
+
+    const actingPlayerStillOnField = carrierPool.find((player) => player.playerId === actingPlayer.playerId);
+    match.ballCarrierName = (actingPlayerStillOnField || carrierPool[0]).name;
+  }
+
+  private normalizePlayerName(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+
+    return value.trim().toLowerCase();
   }
 }

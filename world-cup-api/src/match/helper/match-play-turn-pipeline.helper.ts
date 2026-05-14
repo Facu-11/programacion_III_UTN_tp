@@ -705,23 +705,29 @@ export class MatchPlayTurnPipelineHelper
     const expectedBallCarrierTeamId =
       nextPossession === MatchPossession.USER ? match.teamId : match.opponentId;
     const carrierPool =
-      nextPossession === MatchPossession.USER
-        ? (userPlayers.length ? userPlayers : baseUserPlayers)
-        : (opponentPlayers.length ? opponentPlayers : baseOpponentPlayers);
+      nextPossession === MatchPossession.USER ? userPlayers : opponentPlayers;
     const outcomeCarrierById = turnOutcome.actingPlayer
       ? carrierPool.find((player) => player.playerId === turnOutcome.actingPlayer.playerId)
       : null;
     const outcomeCarrierByName = turnOutcome.ballCarrierName
       ? carrierPool.find((player) => player.name === turnOutcome.ballCarrierName)
       : null;
-    const fallbackCarrier = carrierPool.length
-      ? this.pickPlayerForAction(carrierPool, MatchAction.PASS, nextZone)
-      : null;
+    const fallbackCarrier = carrierPool.length ? this.pickPlayerForAction(carrierPool, MatchAction.PASS, nextZone) : null;
     const resolvedCarrier = outcomeCarrierById || outcomeCarrierByName || fallbackCarrier;
 
     match.ballCarrierTeamId = expectedBallCarrierTeamId;
     if (resolvedCarrier) {
       match.ballCarrierName = resolvedCarrier.name;
+      return;
+    }
+
+    if (turnOutcome.actingPlayer?.name) {
+      match.ballCarrierName = turnOutcome.actingPlayer.name;
+      return;
+    }
+
+    if (!match.ballCarrierName) {
+      match.ballCarrierName = 'Unknown Player';
     }
   }
 

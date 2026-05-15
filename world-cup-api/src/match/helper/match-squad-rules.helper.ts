@@ -31,6 +31,20 @@ interface MatchStatRecordParams {
   messageParams?: TranslationParams | null;
 }
 
+interface TeamTurnSubstitutionLocks {
+  enteredPlayerIds: Set<string>;
+  exitedPlayerIds: Set<string>;
+}
+
+interface MatchTurnSubstitutionLocks {
+  turn: number;
+  byTeam: Record<string, TeamTurnSubstitutionLocks>;
+}
+
+type MatchWithTurnSubstitutionLocks = MatchEntity & {
+  __turnSubstitutionLocks?: MatchTurnSubstitutionLocks;
+};
+
 export interface SquadTurnIncidentMessage {
   type: MatchMessageType.SUBSTITUTION | MatchMessageType.INJURY | MatchMessageType.INFO;
   en: string;
@@ -56,6 +70,45 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
     private readonly i18nService: I18nService,
   ) {
     super();
+  }
+
+  private resolveTeamTurnSubstitutionLocks(match: MatchEntity, teamId: string): TeamTurnSubstitutionLocks {
+    const matchWithLocks = match as MatchWithTurnSubstitutionLocks;
+
+    if (!matchWithLocks.__turnSubstitutionLocks || matchWithLocks.__turnSubstitutionLocks.turn !== match.turn) {
+      matchWithLocks.__turnSubstitutionLocks = {
+        turn: match.turn,
+        byTeam: {},
+      };
+    }
+
+    if (!matchWithLocks.__turnSubstitutionLocks.byTeam[teamId]) {
+      matchWithLocks.__turnSubstitutionLocks.byTeam[teamId] = {
+        enteredPlayerIds: new Set<string>(),
+        exitedPlayerIds: new Set<string>(),
+      };
+    }
+
+    return matchWithLocks.__turnSubstitutionLocks.byTeam[teamId];
+  }
+
+  private registerTurnSubstitution(
+    match: MatchEntity,
+    teamId: string,
+    incomingPlayerId: string,
+    outgoingPlayerId: string,
+  ): void {
+    const locks = this.resolveTeamTurnSubstitutionLocks(match, teamId);
+    locks.enteredPlayerIds.add(incomingPlayerId);
+    locks.exitedPlayerIds.add(outgoingPlayerId);
+  }
+
+  private isProtectedFromOutgoingThisTurn(match: MatchEntity, teamId: string, playerId: string): boolean {
+    return this.resolveTeamTurnSubstitutionLocks(match, teamId).enteredPlayerIds.has(playerId);
+  }
+
+  private isBlockedAsIncomingThisTurn(match: MatchEntity, teamId: string, playerId: string): boolean {
+    return this.resolveTeamTurnSubstitutionLocks(match, teamId).exitedPlayerIds.has(playerId);
   }
 
   /**
@@ -384,7 +437,11 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
       }
 
       const outgoingCandidates = onField
-        .filter((player) => player.position !== 'GK')
+        .filter(
+          (player) =>
+            player.position !== 'GK' &&
+            !this.isProtectedFromOutgoingThisTurn(match, params.teamId, player.playerId),
+        )
         .sort(
           (a, b) =>
             this.roleScoreFromSnapshot(a, params.strategy, a.position) -
@@ -395,9 +452,16 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
         break;
       }
 
-      const incomingPool = bench
+      const eligibleBench = bench.filter(
+        (player) => !this.isBlockedAsIncomingThisTurn(match, params.teamId, player.playerId),
+      );
+      if (!eligibleBench.length) {
+        break;
+      }
+
+      const incomingPool = eligibleBench
         .filter((player) => player.position === outgoing.position)
-        .concat(bench.filter((player) => player.position !== outgoing.position));
+        .concat(eligibleBench.filter((player) => player.position !== outgoing.position));
       const incoming = [...incomingPool].sort(
         (a, b) =>
           this.roleScoreFromSnapshot(b, params.strategy, outgoing.position) -
@@ -423,6 +487,7 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
       } else {
         match.opponentSubstitutionsUsed += 1;
       }
+      this.registerTurnSubstitution(match, params.teamId, incoming.playerId, outgoing.playerId);
 
       const substitutionMessageKey = this.chance(0.5)
         ? 'match.timeline.substitution'
@@ -500,7 +565,10 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
         order: { energy: 'ASC' },
       });
 
-      const outgoing = onField.find((player) => player.energy < 35);
+      const outgoing = onField.find(
+        (player) =>
+          player.energy < 35 && !this.isProtectedFromOutgoingThisTurn(match, teamId, player.playerId),
+      );
       if (!outgoing) {
         return incidents;
       }
@@ -510,17 +578,18 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
         order: { energy: 'DESC' },
       });
 
-      if (!bench.length) {
+      const eligibleBench = bench.filter((player) => !this.isBlockedAsIncomingThisTurn(match, teamId, player.playerId));
+      if (!eligibleBench.length) {
         return incidents;
       }
 
       // Goalkeeper can be subbed only by another goalkeeper to keep role consistency.
       const incoming =
         outgoing.position === 'GK'
-          ? bench.find((candidate) => candidate.position === 'GK')
-          : bench.find((candidate) => candidate.position === outgoing.position) ||
-            bench.find((candidate) => candidate.position === 'MF') ||
-            bench[0];
+          ? eligibleBench.find((candidate) => candidate.position === 'GK')
+          : eligibleBench.find((candidate) => candidate.position === outgoing.position) ||
+            eligibleBench.find((candidate) => candidate.position === 'MF') ||
+            eligibleBench[0];
 
       if (!incoming) {
         return incidents;
@@ -537,6 +606,7 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
       } else {
         match.opponentSubstitutionsUsed += 1;
       }
+      this.registerTurnSubstitution(match, teamId, incoming.playerId, outgoing.playerId);
 
       const substitutionMessageKey = this.chance(0.5)
         ? 'match.timeline.substitution'
@@ -705,16 +775,19 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
       order: { energy: 'DESC' },
     });
 
-    if (!bench.length) {
+    const eligibleBench = bench.filter(
+      (player) => !this.isBlockedAsIncomingThisTurn(match, params.teamId, player.playerId),
+    );
+    if (!eligibleBench.length) {
       return null;
     }
 
     const incoming =
       params.injuredPlayer.position === 'GK'
-        ? bench.find((candidate) => candidate.position === 'GK')
-        : bench.find((candidate) => candidate.position === params.injuredPlayer.position) ||
-          bench.find((candidate) => candidate.position === 'MF') ||
-          bench[0];
+        ? eligibleBench.find((candidate) => candidate.position === 'GK')
+        : eligibleBench.find((candidate) => candidate.position === params.injuredPlayer.position) ||
+          eligibleBench.find((candidate) => candidate.position === 'MF') ||
+          eligibleBench[0];
     if (!incoming) {
       return null;
     }
@@ -728,6 +801,7 @@ export class MatchSquadRulesHelper extends AbstractMatchBasicHelper {
     } else {
       match.opponentSubstitutionsUsed += 1;
     }
+    this.registerTurnSubstitution(match, params.teamId, incoming.playerId, params.injuredPlayer.playerId);
 
     const substitutionMessageKey = this.chance(0.5)
       ? 'match.timeline.substitution'

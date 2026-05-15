@@ -1878,15 +1878,15 @@ export class I18nService {
       'match.lastPlay.counterGoal.for.5':
         '¡¡QUÉ FINAL ÉPICO!! ¡{playerName} LIQUIDA LA HISTORIA DE CONTRA Y EXPLOTA LA FIESTA DE {teamName}!',
       'match.lastPlay.counterGoal.against.1':
-        '¡¡QUÉ GOLPE...!! {playerName} nos mata de contra para {teamName} tras nuestro fallo.',
+        '¡¡Qué golpe...!! {playerName} nos mata de contra para {teamName} tras nuestro fallo.',
       'match.lastPlay.counterGoal.against.2':
-        '¡¡INCREÍBLE FINAL EN CONTRA!! {playerName} castiga de contra y nos deja sin nada.',
+        '¡¡Increíble final en contra!! {playerName} castiga de contra y nos deja sin nada.',
       'match.lastPlay.counterGoal.against.3':
-        '¡¡NOS AGARRARON MAL PARADOS!! {playerName} define de contra para {teamName} y duele muchísimo.',
+        '¡¡Nos agarraron mal parados!! {playerName} define de contra para {teamName} y duele muchísimo.',
       'match.lastPlay.counterGoal.against.4':
-        '¡¡DEL CASI GOL NUESTRO AL GOLPE FINAL!! {playerName} convierte de contra y silencia todo.',
+        '¡¡Del casi gol nuestro al golpe final!! {playerName} convierte de contra y silencia todo.',
       'match.lastPlay.counterGoal.against.5':
-        '¡¡FINAL TRISTÍSIMO!!  {playerName} liquida de contra para {teamName} y se termina el sueño.',
+        '¡¡Final tristísimo!! {playerName} liquida de contra para {teamName} y se termina el sueño.',
       'match.restart.penaltyFor': '¡Penal para {teamName}! ¡El estadio explota!',
       'match.restart.penaltyAgainst': 'Penal contra {teamName}. El arquero se prepara para detener el remate.',
       'match.penalty.foulWhistle': '¡Penal! El árbitro no duda y señala la pena máxima. ¡{teamName} tiene una chance de oro!',

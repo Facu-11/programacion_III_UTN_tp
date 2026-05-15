@@ -34,6 +34,7 @@
     "test:outcome-goal-variants": "ts-node -r tsconfig-paths/register ./scripts/tests/match-outcome-message-goal-variant.spec.ts",
     "test:user-tactics-shift-message": "ts-node -r tsconfig-paths/register ./scripts/tests/match-user-tactics-shift-message.spec.ts",
     "test:squad-onfield-filter": "ts-node -r tsconfig-paths/register ./scripts/tests/match-squad-rules-onfield-filter.spec.ts",
+    "test:same-turn-substitution-guard": "ts-node -r tsconfig-paths/register ./scripts/tests/match-substitution-same-turn-guard.spec.ts",
     "test:turn-orchestrator-onfield-only": "ts-node -r tsconfig-paths/register ./scripts/tests/match-turn-orchestrator-onfield-only.spec.ts",
     "test:pipeline-onfield-carrier-only": "ts-node -r tsconfig-paths/register ./scripts/tests/match-pipeline-onfield-carrier-only.spec.ts",
     "db:seed": "bash ./scripts/seed-initial-data.sh",
